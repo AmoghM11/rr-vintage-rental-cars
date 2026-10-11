@@ -1,0 +1,463 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --night: #070605;
+  --coal: #0f0d0b;
+  --ivory: #f3ede2;
+  --gold: #8e6b36;
+  --gold-light: #c9a56b;
+  --gold-pale: #e6cf9f;
+  --parchment: #e9d4aa;
+}
+
+@layer base {
+  html {
+    background: var(--night);
+    color: var(--ivory);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  body {
+    @apply font-sans;
+    background: var(--night);
+    font-size: 17px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: var(--gold-light);
+    color: var(--night);
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--night);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--gold), var(--gold-light));
+    border-radius: 8px;
+  }
+  img {
+    user-select: none;
+  }
+  :focus-visible {
+    outline: 1px solid var(--gold-light);
+    outline-offset: 4px;
+  }
+}
+
+@layer components {
+  .kicker {
+    @apply font-sans uppercase;
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.42em;
+    color: var(--gold-light);
+  }
+  .display {
+    font-family: 'Italiana', serif;
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: 0.04em;
+  }
+  .gold-text {
+    background: linear-gradient(100deg, #8e6b36 0%, #e6cf9f 38%, #c9a56b 55%, #8e6b36 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: sheen 7s ease-in-out infinite;
+  }
+  .btn-gold,
+  .btn-ghost {
+    @apply relative inline-flex items-center justify-center gap-3 overflow-hidden font-sans uppercase;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.28em;
+    padding: 1.05rem 1.9rem;
+    transition: color 0.45s ease, border-color 0.45s ease;
+    isolation: isolate;
+  }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--ivory);
+  }
+  .btn-gold::before,
+  .btn-ghost::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: translateY(101%);
+    transition: transform 0.55s cubic-bezier(0.7, 0, 0.2, 1);
+  }
+  .btn-gold::before {
+    background: var(--ivory);
+  }
+  .btn-gold:hover {
+    color: var(--night);
+  }
+  .btn-ghost {
+    border: 1px solid rgba(201, 165, 107, 0.55);
+    color: var(--ivory);
+  }
+  .btn-ghost::before {
+    background: var(--gold);
+  }
+  .btn-gold:hover::before,
+  .btn-ghost:hover::before {
+    transform: translateY(0);
+  }
+  .rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201, 165, 107, 0.6), transparent);
+  }
+}
+
+@keyframes sheen {
+  0%,
+  100% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+}
+
+/* ---------- stage canvas + film grain ---------- */
+.stage-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+.grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 1.2s steps(6) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-3%, 2%); }
+  40% { transform: translate(2%, -3%); }
+  60% { transform: translate(-2%, -1%); }
+  80% { transform: translate(3%, 3%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* ---------- custom cursor ---------- */
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  border-radius: 999px;
+  transform: translate3d(-100px, -100px, 0);
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--gold-pale);
+}
+.cursor-ring {
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 1px solid rgba(230, 207, 159, 0.55);
+  transition: width 0.35s ease, height 0.35s ease, margin 0.35s ease, background 0.35s ease, border-color 0.35s;
+}
+.cursor-ring.is-hover {
+  width: 74px;
+  height: 74px;
+  margin: -37px 0 0 -37px;
+  background: rgba(201, 165, 107, 0.12);
+  border-color: rgba(230, 207, 159, 0.9);
+}
+@media (hover: none), (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
+
+@keyframes scrollcue {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}
+
+/* ---------- hero petals ---------- */
+.petal {
+  position: absolute;
+  top: -8vh;
+  pointer-events: none;
+  animation: petal-fall linear infinite;
+  will-change: transform;
+}
+.petal > span {
+  display: block;
+  animation: petal-sway ease-in-out infinite alternate;
+}
+.petal svg {
+  display: block;
+  animation: petal-spin linear infinite;
+}
+@keyframes petal-fall {
+  to {
+    transform: translate3d(0, 118vh, 0);
+  }
+}
+@keyframes petal-sway {
+  from {
+    transform: translateX(-28px);
+  }
+  to {
+    transform: translateX(28px);
+  }
+}
+@keyframes petal-spin {
+  from {
+    transform: rotate3d(1, 0.6, 0.2, 0deg);
+  }
+  to {
+    transform: rotate3d(1, 0.6, 0.2, 360deg);
+  }
+}
+
+/* ---------- hotspots over the 3D car ---------- */
+.hotspot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.hotspot.is-on {
+  opacity: 1;
+}
+.hotspot-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 999px;
+  background: var(--gold-pale);
+  box-shadow: 0 0 0 0 rgba(230, 207, 159, 0.6);
+  animation: ping 2s ease-out infinite;
+}
+.hotspot-line {
+  position: absolute;
+  left: 6px;
+  top: -40px;
+  width: 54px;
+  height: 40px;
+  border-left: 1px solid rgba(230, 207, 159, 0.7);
+  border-top: 1px solid rgba(230, 207, 159, 0.7);
+  transform-origin: bottom left;
+  transform: skewX(-38deg) scale(0);
+  transition: transform 0.5s 0.1s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hotspot.is-on .hotspot-line {
+  transform: skewX(-38deg) scale(1);
+}
+.hotspot-label {
+  position: absolute;
+  left: 52px;
+  top: -54px;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  padding: 0.35rem 0.7rem;
+  background: rgba(7, 6, 5, 0.6);
+  border: 1px solid rgba(201, 165, 107, 0.35);
+  backdrop-filter: blur(6px);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.6s 0.25s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.hotspot.is-on .hotspot-label {
+  clip-path: inset(0 0 0 0);
+}
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(230, 207, 159, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(230, 207, 159, 0);
+  }
+}
+
+.hotspot.flip .hotspot-line {
+  left: auto;
+  right: 6px;
+  border-left: 0;
+  border-right: 1px solid rgba(230, 207, 159, 0.7);
+  transform-origin: bottom right;
+  transform: skewX(38deg) scale(0);
+}
+.hotspot.flip.is-on .hotspot-line {
+  transform: skewX(38deg) scale(1);
+}
+.hotspot.flip .hotspot-label {
+  left: auto;
+  right: 52px;
+}
+
+/* ---------- parchment ---------- */
+.paper {
+  background-color: #e8d2a6;
+  background-image: radial-gradient(ellipse at 20% 15%, rgba(255, 246, 222, 0.75), transparent 55%),
+    radial-gradient(ellipse at 80% 85%, rgba(160, 112, 52, 0.28), transparent 60%),
+    radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(120, 78, 30, 0.35) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035' numOctaves='4'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.12 0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  color: #2b1e10;
+  box-shadow: inset 0 0 60px rgba(110, 70, 25, 0.35);
+}
+.roller {
+  height: 54px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #a77d43 0%, #f1dcae 28%, #e2c48d 46%, #a67a3d 72%, #6d4b20 100%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), inset 0 -4px 8px rgba(70, 40, 10, 0.35);
+  position: relative;
+}
+.roller::before,
+.roller::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  width: 26px;
+  height: 38px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #5b3d17, #2c1c09);
+}
+.roller::before {
+  left: -14px;
+}
+.roller::after {
+  right: -14px;
+}
+
+/* ---------- marquee ---------- */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+}
+.marquee-track.reverse {
+  animation-direction: reverse;
+  animation-duration: 46s;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.outline-text {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(201, 165, 107, 0.55);
+}
+
+/* ---------- fleet panels ---------- */
+.car-panel [data-a],
+.car-panel [data-spec],
+.car-panel .cp-title .char-wrap,
+.fleet-sub [data-sub] {
+  visibility: hidden;
+}
+
+/* ---------- form fields ---------- */
+.field {
+  position: relative;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(243, 237, 226, 0.22);
+  padding: 1.35rem 0 0.6rem;
+  color: var(--ivory);
+  font-size: 1.05rem;
+  outline: none;
+  border-radius: 0;
+  transition: border-color 0.4s;
+}
+.field select option {
+  background: var(--coal);
+}
+.field label {
+  position: absolute;
+  left: 0;
+  top: 1.3rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(243, 237, 226, 0.5);
+  pointer-events: none;
+  transition: all 0.35s ease;
+}
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label,
+.field textarea:focus + label,
+.field textarea:not(:placeholder-shown) + label,
+.field select + label {
+  top: 0;
+  font-size: 0.66rem;
+  color: var(--gold-light);
+}
+.field::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 100%;
+  background: var(--gold-light);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.field:focus-within::after {
+  transform: scaleX(1);
+}
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(1) saturate(2) hue-rotate(5deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .petal {
+    display: none;
+  }
+}
