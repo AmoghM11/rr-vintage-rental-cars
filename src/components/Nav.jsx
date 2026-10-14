@@ -35,7 +35,7 @@ export default function Nav({ lenisRef }) {
   useEffect(() => {
     if (open && overlay.current) {
       lenisRef.current?.stop()
-      gsap.fromTo(overlay.current, { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.8, ease: 'expo.inOut' })
+      gsap.fromTo(overlay.current, { yPercent: -100 }, { yPercent: 0, duration: 0.8, ease: 'expo.inOut' })
       gsap.fromTo(
         overlay.current.querySelectorAll('[data-m]'),
         { yPercent: 120 },
@@ -65,8 +65,8 @@ export default function Nav({ lenisRef }) {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-700 ${hidden && !open ? '-translate-y-full' : ''} ${
-          scrolled ? 'bg-night/70 py-3 backdrop-blur-xl' : 'py-6'
+        className={`fixed inset-x-0 top-0 z-50 transition-[transform,padding,background-color] duration-700 ${hidden && !open ? '-translate-y-full' : ''} ${
+          scrolled ? 'bg-night/90 py-3' : 'py-6'
         }`}
       >
         <div className="mx-auto grid max-w-[1400px] grid-cols-[1fr_auto] items-center px-5 md:px-10 lg:grid-cols-[1fr_auto_1fr]">

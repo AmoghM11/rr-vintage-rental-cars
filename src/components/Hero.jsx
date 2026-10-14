@@ -5,7 +5,7 @@ import { ArrowRight } from 'lucide-react'
 
 function Petals() {
   const petals = useMemo(() => {
-    const n = typeof window !== 'undefined' && window.innerWidth < 768 ? 10 : 20
+    const n = typeof window !== 'undefined' && window.innerWidth < 768 ? 8 : 16
     return Array.from({ length: n }, (_, i) => ({
       left: Math.random() * 100,
       size: 10 + Math.random() * 14,
@@ -41,7 +41,7 @@ export default function Hero({ entered }) {
     const ctx = gsap.context(() => {
       const split = new SplitText('[data-hero-title]', { type: 'words,chars', mask: 'words' })
       const tl = gsap.timeline({ delay: 0.15, defaults: { ease: 'expo.out' } })
-      tl.fromTo('[data-hero-kicker]', { autoAlpha: 0, letterSpacing: '1.2em' }, { autoAlpha: 1, letterSpacing: '0.42em', duration: 1.8 })
+      tl.fromTo('[data-hero-kicker]', { autoAlpha: 0, y: 16, scale: 1.08 }, { autoAlpha: 1, y: 0, scale: 1, duration: 1.8 })
         .fromTo(split.chars, { yPercent: 115, rotate: 6 }, { yPercent: 0, rotate: 0, stagger: 0.035, duration: 1.5 }, '-=1.4')
         .fromTo('[data-hero-sub]', { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 1.2 }, '-=1.0')
         .fromTo('[data-hero-cta]', { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, stagger: 0.12, duration: 1.1 }, '-=0.9')

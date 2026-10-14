@@ -9,7 +9,8 @@ export const SITE = {
   hours: 'Bookings answered 9 am – 9 pm, every day',
 }
 
-const img = (id, w = 1600) => `https://images.unsplash.com/photo-${id}?w=${w}&q=75&auto=format&fit=crop`
+const img = (id, w = 1600) => `https://images.unsplash.com/photo-${id}?w=${w}&q=72&auto=format&fit=crop`
+const srcset = (id, widths) => widths.map((w) => `${img(id, w)} ${w}w`).join(', ')
 
 export const CARS = [
   {
@@ -98,7 +99,8 @@ export const OCCASIONS = [
     key: 'weddings',
     kicker: 'For the big day',
     title: 'Weddings',
-    image: img('1640522196033-e95ec1e93c8c'),
+    image: img('1640522196033-e95ec1e93c8c', 1100),
+    srcSet: srcset('1640522196033-e95ec1e93c8c', [600, 900, 1100]),
     alt: 'Ivory vintage wedding car dressed with a satin ribbon bow',
     text: 'A vintage car turns an arrival into a scene everyone remembers. Choose the ivory Rolls-Royce for a regal entrance or the Marry Vintage for a burgundy-and-chrome send-off.',
     items: ['Bride’s grand entry', 'Baraat procession', 'Vidaai send-off', 'Reception arrival'],
@@ -107,7 +109,8 @@ export const OCCASIONS = [
     key: 'shoots',
     kicker: 'For the camera',
     title: 'Film & Photo Shoots',
-    image: img('1707414616417-f4c835c6a81a'),
+    image: img('1707414616417-f4c835c6a81a', 1100),
+    srcSet: srcset('1707414616417-f4c835c6a81a', [600, 900, 1100]),
     alt: 'Cream classic car lit at night outside a grand building',
     text: 'Period-correct cars that look right from every angle, kept clean and ready to be framed. Book by the hour for a portrait session or by the day for a production.',
     items: ['Pre-wedding shoots', 'Ad films & music videos', 'Fashion editorials', 'Period films'],
@@ -133,11 +136,11 @@ export const STEPS = [
 ]
 
 export const GALLERY = [
-  { src: img('1460154898712-a7f99bb4a464', 1200), caption: 'Brass, chrome and a wedding bow' },
-  { src: img('1571394111091-d3edac39a32b', 1200), caption: 'The first drive as a married couple' },
-  { src: img('1684244249856-9d0620c2f9db', 1200), caption: 'Open roads, open roof' },
-  { src: img('1708926677406-45b973d9166b', 1200), caption: 'A roadster for the portrait' },
-  { src: img('1675873725360-b15df4950952', 1200), caption: 'Period styling, made for the lens' },
-  { src: img('1523371696700-91e21249c0ed', 1200), caption: 'Ribbons on, ready to roll' },
-  { src: img('1561100966-f6aa0145e8e6', 1200), caption: 'Sea air and chrome' },
+  { src: img('1460154898712-a7f99bb4a464', 900), srcSet: srcset('1460154898712-a7f99bb4a464', [500, 700, 900]), caption: 'Brass, chrome and a wedding bow' },
+  { src: img('1571394111091-d3edac39a32b', 900), srcSet: srcset('1571394111091-d3edac39a32b', [500, 700, 900]), caption: 'The first drive as a married couple' },
+  { src: img('1684244249856-9d0620c2f9db', 900), srcSet: srcset('1684244249856-9d0620c2f9db', [500, 700, 900]), caption: 'Open roads, open roof' },
+  { src: img('1708926677406-45b973d9166b', 900), srcSet: srcset('1708926677406-45b973d9166b', [500, 700, 900]), caption: 'A roadster for the portrait' },
+  { src: img('1675873725360-b15df4950952', 900), srcSet: srcset('1675873725360-b15df4950952', [500, 700, 900]), caption: 'Period styling, made for the lens' },
+  { src: img('1523371696700-91e21249c0ed', 900), srcSet: srcset('1523371696700-91e21249c0ed', [500, 700, 900]), caption: 'Ribbons on, ready to roll' },
+  { src: img('1561100966-f6aa0145e8e6', 900), srcSet: srcset('1561100966-f6aa0145e8e6', [500, 700, 900]), caption: 'Sea air and chrome' },
 ]

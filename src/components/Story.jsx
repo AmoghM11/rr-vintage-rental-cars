@@ -43,7 +43,7 @@ export default function Story() {
       // unroll the scroll
       gsap
         .timeline({ scrollTrigger: { trigger: root.current, start: 'top 75%', end: 'top 5%', scrub: 0.6 } })
-        .fromTo(paper, { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', ease: 'none' })
+        .fromTo('[data-paper-cover]', { yPercent: 0 }, { yPercent: 100, ease: 'none' })
         .fromTo('[data-roller-bottom]', { y: () => -paper.offsetHeight }, { y: 0, ease: 'none' }, 0)
 
       // engraving draws on
@@ -61,9 +61,9 @@ export default function Story() {
 
       // heading + reading reveal
       const h = new SplitText('[data-story-title]', { type: 'words,chars' })
-      gsap.fromTo(h.chars, { autoAlpha: 0, filter: 'blur(8px)' }, {
+      gsap.fromTo(h.chars, { autoAlpha: 0, yPercent: 40 }, {
         autoAlpha: 1,
-        filter: 'blur(0px)',
+        yPercent: 0,
         stagger: 0.05,
         scrollTrigger: { trigger: '[data-story-title]', start: 'top 80%', end: 'top 45%', scrub: 0.6 },
       })
@@ -81,10 +81,10 @@ export default function Story() {
 
   return (
     <section id="story" ref={root} className="relative z-10 overflow-hidden bg-night px-4 pb-28 pt-24 md:pb-36" aria-labelledby="story-title">
-      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(142,107,54,.35), transparent 60%)' }} />
       <div className="relative mx-auto max-w-4xl">
         <div className="roller relative z-10 mx-2" />
-        <div data-paper className="paper relative -mt-6 px-6 pb-16 pt-16 text-center md:px-20" style={{ clipPath: 'inset(0 0 100% 0)' }}>
+        <div className="relative -mt-6 overflow-hidden">
+        <div data-paper className="paper relative px-6 pb-16 pt-16 text-center md:px-20">
           <p className="font-sans text-[0.78rem] font-semibold uppercase tracking-[0.5em] text-[#7a5523]">RR Vintage</p>
           <h2 id="story-title" data-story-title className="display mt-5 text-[clamp(2.8rem,7vw,5.6rem)] uppercase text-[#2b1e10]">
             A legacy on wheels
@@ -108,6 +108,8 @@ export default function Story() {
             not a museum plinth, and arrives ready for the entrance, the procession and the camera.
           </p>
           <p className="mt-10 font-serif text-2xl italic text-[#7a5523]">— The RR Vintage garage</p>
+        </div>
+        <div data-paper-cover className="absolute inset-0 bg-night will-change-transform" />
         </div>
         <div data-roller-bottom className="roller relative z-10 mx-2 -mt-6" />
       </div>

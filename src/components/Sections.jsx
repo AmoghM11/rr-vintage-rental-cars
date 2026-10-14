@@ -76,7 +76,7 @@ export function Occasions() {
       gsap.utils.toArray('[data-occ]').forEach((row) => {
         const frame = row.querySelector('[data-frame]')
         const img = row.querySelector('img')
-        gsap.fromTo(frame, { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.6, ease: 'expo.inOut', scrollTrigger: { trigger: row, start: 'top 75%' } })
+        gsap.fromTo(frame.querySelector('[data-cover]'), { scaleX: 1 }, { scaleX: 0, duration: 1.6, ease: 'expo.inOut', scrollTrigger: { trigger: row, start: 'top 75%' } })
         gsap.fromTo(img, { scale: 1.35, yPercent: -8 }, { scale: 1.08, yPercent: 8, ease: 'none', scrollTrigger: { trigger: row, start: 'top bottom', end: 'bottom top', scrub: true } })
         gsap.fromTo(row.querySelectorAll('[data-item]'), { autoAlpha: 0, x: 30 }, { autoAlpha: 1, x: 0, stagger: 0.1, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: row, start: 'top 60%' } })
       })
@@ -93,9 +93,10 @@ export function Occasions() {
           {OCCASIONS.map((o, i) => (
             <div key={o.key} data-occ className={`grid items-center gap-10 md:grid-cols-12 md:gap-16 ${i % 2 ? 'md:[&>*:first-child]:order-2' : ''}`}>
               <div data-frame className="relative aspect-[4/5] overflow-hidden md:col-span-6 md:aspect-[5/6]">
-                <img src={o.image} alt={o.alt} loading="lazy" className="h-full w-full object-cover" />
+                <img src={o.image} srcSet={o.srcSet} sizes="(min-width: 768px) 46vw, 92vw" alt={o.alt} loading="lazy" decoding="async" className="h-full w-full object-cover will-change-transform" />
                 <div className="absolute inset-0 bg-gradient-to-t from-night/50 to-transparent" />
                 <span className="display absolute bottom-5 left-6 text-6xl text-ivory/90">0{i + 1}</span>
+                <div data-cover className={`absolute inset-0 bg-ivory will-change-transform ${i % 2 ? 'origin-left' : 'origin-right'}`} />
               </div>
               <div className="md:col-span-6">
                 <p data-reveal className="kicker !text-gold">
@@ -136,13 +137,10 @@ export function Process() {
       const cards = gsap.utils.toArray('[data-step]')
       cards.forEach((card, i) => {
         if (i === cards.length - 1) return
-        gsap.to(card.querySelector('[data-inner]'), {
-          scale: 0.9,
-          opacity: 0.35,
-          filter: 'blur(3px)',
-          ease: 'none',
-          scrollTrigger: { trigger: cards[i + 1], start: 'top bottom', end: 'top 18%', scrub: true },
-        })
+        // the card stays opaque (so the one beneath never shows through); a shade dims it instead
+        const st = { trigger: cards[i + 1], start: 'top bottom', end: 'top 18%', scrub: true }
+        gsap.to(card.querySelector('[data-inner]'), { scale: 0.9, ease: 'none', scrollTrigger: st })
+        gsap.fromTo(card.querySelector('[data-shade]'), { opacity: 0 }, { opacity: 0.7, ease: 'none', scrollTrigger: { ...st } })
       })
     }, root)
     return () => ctx.revert()
@@ -160,9 +158,10 @@ export function Process() {
               <div key={s.n} data-step className="sticky top-[14vh] pb-[8vh]">
                 <div
                   data-inner
-                  className="relative grid min-h-[52vh] origin-top overflow-hidden border border-gold/35 bg-gradient-to-br from-[#16120d] to-[#0b0907] p-8 md:grid-cols-[1fr_1.3fr] md:p-14"
+                  className="relative grid min-h-[52vh] origin-top overflow-hidden will-change-transform border border-gold/35 bg-gradient-to-br from-[#16120d] to-[#0b0907] p-8 md:grid-cols-[1fr_1.3fr] md:p-14"
                 >
-                  <div className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 rounded-full bg-gold/10 blur-3xl" />
+                  <div data-shade className="pointer-events-none absolute inset-0 z-10 bg-night opacity-0 will-change-[opacity]" />
+                  <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96" style={{ background: 'radial-gradient(circle, rgba(142,107,54,.16), transparent 65%)' }} />
                   <div className="flex flex-col justify-between">
                     <span className="display text-[7rem] leading-none text-gold/25 md:text-[10rem]">{s.n}</span>
                     <Icon className="mt-6 text-gold-light" size={36} strokeWidth={1.2} />
@@ -213,10 +212,10 @@ export function Gallery() {
           </div>
           <p className="hidden max-w-xs text-right font-serif text-xl italic text-gold-pale md:block">Ribbons, roads and rolling portraits.</p>
         </div>
-        <div ref={track} className="flex w-max gap-5 px-5 md:gap-8 md:px-[8vw]">
+        <div ref={track} className="flex w-max gap-5 px-5 will-change-transform md:gap-8 md:px-[8vw]">
           {GALLERY.map((g, i) => (
             <figure key={i} className="group relative h-[52vh] w-[72vw] shrink-0 overflow-hidden sm:w-[46vw] md:w-[30vw]" data-cursor>
-              <img data-gimg src={g.src} alt={g.caption} loading="lazy" className="h-full w-[124%] max-w-none object-cover transition-[filter] duration-700 group-hover:brightness-110" style={{ marginLeft: '-12%' }} />
+              <img data-gimg src={g.src} srcSet={g.srcSet} sizes="(min-width: 768px) 38vw, (min-width: 640px) 58vw, 90vw" alt={g.caption} loading="lazy" decoding="async" className="h-full w-[124%] max-w-none object-cover will-change-transform" style={{ marginLeft: '-12%' }} />
               <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-night/85 to-transparent p-5">
                 <span className="font-serif text-lg italic text-ivory">{g.caption}</span>
                 <span className="text-xs tracking-[0.3em] text-gold-light">0{i + 1}</span>

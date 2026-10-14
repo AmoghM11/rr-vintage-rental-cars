@@ -82,7 +82,7 @@ export default function Fleet({ stageRef }) {
       gsap
         .timeline({ scrollTrigger: { trigger: '[data-fleet-intro]', start: 'top 85%', end: 'bottom 30%', scrub: 0.8 } })
         .fromTo(title.chars, { autoAlpha: 0, yPercent: 60, rotateX: -80 }, { autoAlpha: 1, yPercent: 0, rotateX: 0, stagger: 0.06 })
-        .fromTo('[data-fleet-title]', { letterSpacing: '0em' }, { letterSpacing: '0.18em', ease: 'none' }, 0)
+        .fromTo('[data-fleet-title]', { scale: 0.86 }, { scale: 1, ease: 'none' }, 0)
         .fromTo('[data-fleet-intro] [data-in]', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, stagger: 0.15 }, 0.3)
         .fromTo('[data-lamp]', { rotate: -55, autoAlpha: 0 }, { rotate: 0, autoAlpha: 1, ease: 'back.out(1.6)' }, 0.1)
 
@@ -130,7 +130,7 @@ export default function Fleet({ stageRef }) {
           .fromTo([a[2], a[3]], { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, stagger: 0.03, duration: 0.1 }, b + 0.22)
           .fromTo(specs, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, stagger: 0.025, duration: 0.08 }, b + 0.3)
           .fromTo([a[4], a[5]], { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, stagger: 0.03, duration: 0.08 }, b + 0.42)
-          .fromTo(subs[i], { autoAlpha: 0, y: 20, filter: 'blur(6px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.12 }, b + 0.5)
+          .fromTo(subs[i], { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.12 }, b + 0.5)
 
         panel.querySelectorAll('[data-count]').forEach((el) => {
           const o = { v: 0 }
@@ -162,7 +162,7 @@ export default function Fleet({ stageRef }) {
         <StageLamp side="left" />
         <StageLamp side="right" />
         <p data-in className="kicker">Spotlight on wheels</p>
-        <h2 id="fleet-title" data-fleet-title className="display mt-6 text-[clamp(3.4rem,12vw,10rem)] uppercase text-ivory">
+        <h2 id="fleet-title" data-fleet-title className="display mt-6 text-[clamp(3.4rem,12vw,10rem)] uppercase tracking-[0.18em] text-ivory will-change-transform">
           The Fleet
         </h2>
         <p data-in className="mt-4 font-serif text-2xl italic text-gold-pale md:text-3xl">

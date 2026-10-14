@@ -1,11 +1,9 @@
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 const WORDS = ['Rolls-Royce', 'MG', 'Morgan', 'Marry Vintage']
 
 function Row({ outline, reverse }) {
-  const items = [...WORDS, ...WORDS, ...WORDS, ...WORDS]
+  const items = [...WORDS, ...WORDS]
   return (
     <div className={`marquee-track ${reverse ? 'reverse' : ''}`}>
       {items.map((w, i) => (
@@ -20,24 +18,20 @@ function Row({ outline, reverse }) {
   )
 }
 
+// The rows glide on the compositor (pure CSS transform). Large lettering is expensive to redraw,
+// so nothing here changes per scroll frame, and the loop pauses whenever the band is off-screen.
 export default function Marquee() {
   const root = useRef(null)
   useEffect(() => {
-    const skew = gsap.quickTo(root.current.querySelectorAll('[data-skew]'), 'skewX', { duration: 0.5, ease: 'power3' })
-    const st = ScrollTrigger.create({
-      trigger: root.current,
-      start: 'top bottom',
-      end: 'bottom top',
-      onUpdate: (self) => skew(gsap.utils.clamp(-12, 12, self.getVelocity() / -260)),
-    })
-    return () => st.kill()
+    const el = root.current
+    const io = new IntersectionObserver(([e]) => el.classList.toggle('is-paused', !e.isIntersecting), { rootMargin: '200px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
   }, [])
   return (
-    <section ref={root} className="relative z-10 overflow-hidden border-y border-gold/25 bg-night py-10" aria-label="Our fleet">
-      <div data-skew>
-        <Row />
-      </div>
-      <div data-skew className="mt-2">
+    <section ref={root} className="marquee relative z-10 overflow-hidden border-y border-gold/25 bg-night py-10" aria-label="Our fleet">
+      <Row />
+      <div className="mt-2">
         <Row outline reverse />
       </div>
     </section>

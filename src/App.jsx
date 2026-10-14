@@ -6,6 +6,7 @@ import Lenis from 'lenis'
 import { createStage } from './three/stage.js'
 import Loader from './components/Loader.jsx'
 import Cursor from './components/Cursor.jsx'
+import GlyphWarmup from './components/GlyphWarmup.jsx'
 import Nav from './components/Nav.jsx'
 import Hero from './components/Hero.jsx'
 import Marquee from './components/Marquee.jsx'
@@ -14,6 +15,8 @@ import Fleet from './components/Fleet.jsx'
 import { Booking, Footer, Gallery, Heritage, Occasions, Process } from './components/Sections.jsx'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
+// Phones resize the viewport as the address bar hides/shows; recalculating every pin then causes jumps.
+ScrollTrigger.config({ ignoreMobileResize: true })
 
 export default function App() {
   const canvasRef = useRef(null)
@@ -36,12 +39,19 @@ export default function App() {
     Promise.all([stage.load((p) => alive && setProgress(p)), document.fonts.ready]).then(() => alive && setReady(true))
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const lenis = new Lenis({ lerp: reduced ? 1 : 0.085, wheelMultiplier: 0.9, touchMultiplier: 1.4 })
+    // Wheel/trackpad gets eased smoothing; touch keeps the device's native momentum (syncTouch off),
+    // which is what feels best on iPhone and Android.
+    const lenis = new Lenis({ lerp: reduced ? 1 : 0.1, wheelMultiplier: 0.9, syncTouch: false })
     lenisRef.current = lenis
     if (import.meta.env.DEV) window.__lenis = lenis
     lenis.stop()
     lenis.on('scroll', ScrollTrigger.update)
-    const tick = (t) => lenis.raf(t * 1000)
+    // One clock for everything: Lenis scrolls, ScrollTrigger updates, then the 3D frame renders,
+    // all inside the same animation frame so the stage never lags a frame behind the page.
+    const tick = (t) => {
+      lenis.raf(t * 1000)
+      stage.tick()
+    }
     gsap.ticker.add(tick)
     gsap.ticker.lagSmoothing(0)
     const onClick = (e) => {
@@ -96,10 +106,11 @@ export default function App() {
   return (
     <>
       <canvas ref={canvasRef} className="stage-canvas" aria-hidden="true" />
+      {!entered && <GlyphWarmup />}
       {!entered && <Loader progress={progress} ready={ready} onDone={onEntered} />}
       <Cursor />
       <div className="grain" aria-hidden="true" />
-      <div className="fixed inset-x-0 top-0 z-[55] h-[2px] origin-left scale-x-0 bg-gradient-to-r from-gold via-gold-pale to-gold" data-progressbar />
+      <div className="fixed inset-x-0 top-0 z-[55] h-[2px] origin-left scale-x-0 will-change-transform bg-gradient-to-r from-gold via-gold-pale to-gold" data-progressbar />
 
       {['a', 'b', 'c'].map((k, i) => (
         <div key={k} ref={(el) => (hotspotRefs.current[i] = el)} className="hotspot" aria-hidden="true">

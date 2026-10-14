@@ -3,7 +3,7 @@
 // where the camera is, and how bright the stage lights are.
 import { THREE } from './kit.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { Reflector } from 'three/addons/objects/Reflector.js'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { buildCar, CAR_IDS } from './cars.js'
 import { loadCar, PHOTO_CARS } from './models.js'
 
@@ -40,15 +40,56 @@ function beamMaterial() {
   })
 }
 
+function blobTexture() {
+  const c = document.createElement('canvas')
+  c.width = c.height = 128
+  const x = c.getContext('2d')
+  const g = x.createRadialGradient(64, 64, 0, 64, 64, 64)
+  g.addColorStop(0, 'rgba(0,0,0,0.85)')
+  g.addColorStop(0.55, 'rgba(0,0,0,0.45)')
+  g.addColorStop(1, 'rgba(0,0,0,0)')
+  x.fillStyle = g
+  x.fillRect(0, 0, 128, 128)
+  return new THREE.CanvasTexture(c)
+}
+
+// Dust drifts on the GPU: the CPU never touches the particles after creation.
+function dustMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uOpacity: { value: 0 }, uScale: { value: 400 }, uColor: { value: new THREE.Color(0xe6cf9f) } },
+    vertexShader: /* glsl */ `
+      attribute float seed; uniform float uTime; uniform float uScale;
+      void main(){
+        vec3 p = position + vec3(sin(uTime + seed) * 0.25, sin(uTime * 0.7 + seed * 2.0) * 0.35, cos(uTime * 0.9 + seed) * 0.25);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = 0.022 * uScale / -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor; uniform float uOpacity;
+      void main(){ float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(uColor, uOpacity * smoothstep(0.5, 0.0, d)); }`,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  })
+}
+
 export function createStage(canvas) {
   const isMobile = window.matchMedia('(max-width: 820px)').matches
+  const isTouch = window.matchMedia('(pointer: coarse)').matches
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const lowPower = isMobile || isTouch
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 1.75))
+  // High-density screens are already sharp, so skip MSAA there and render below native resolution.
+  const deviceDpr = window.devicePixelRatio || 1
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: deviceDpr < 2, powerPreference: 'high-performance', stencil: false })
+  const maxDpr = Math.min(deviceDpr, 1.5)
+  const minDpr = lowPower ? 0.75 : 1
+  let dpr = maxDpr
+  renderer.setPixelRatio(dpr)
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.05
-  renderer.shadowMap.enabled = true
+  renderer.shadowMap.enabled = !lowPower
   renderer.shadowMap.type = THREE.PCFShadowMap
 
   const BG = 0x060504
@@ -78,47 +119,37 @@ export function createStage(canvas) {
   base.receiveShadow = true
   spinner.add(base)
   const ringMat = new THREE.MeshStandardMaterial({ color: 0x8e6b36, emissive: 0xb08850, emissiveIntensity: 0.3, metalness: 1, roughness: 0.3 })
+  // rings + tick marks share one material, so they are merged into a single draw call
+  const trim = []
   for (const [r, t, y] of [
     [3.3, 0.016, 0.119],
     [3.4, 0.012, 0.01],
     [2.55, 0.006, 0.121],
     [1.4, 0.005, 0.121],
   ]) {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 160), ringMat)
-    ring.rotation.x = Math.PI / 2
-    ring.position.y = y
-    spinner.add(ring)
+    const g = new THREE.TorusGeometry(r, t, 8, 160)
+    g.rotateX(Math.PI / 2)
+    g.translate(0, y, 0)
+    trim.push(g)
   }
-  // tick marks so the rotation reads
-  const tickGeo = new THREE.BoxGeometry(0.18, 0.004, 0.012)
   for (let i = 0; i < 48; i++) {
     const a = (i / 48) * Math.PI * 2
-    const t = new THREE.Mesh(tickGeo, ringMat)
-    t.position.set(Math.cos(a) * 3.12, 0.122, Math.sin(a) * 3.12)
-    t.rotation.y = -a
-    spinner.add(t)
+    const g = new THREE.BoxGeometry(0.18, 0.004, 0.012).toNonIndexed()
+    g.rotateY(-a)
+    g.translate(Math.cos(a) * 3.12, 0.122, Math.sin(a) * 3.12)
+    trim.push(g)
   }
-  let mirror = null
-  if (!isMobile) {
-    mirror = new Reflector(new THREE.CircleGeometry(3.29, 96), {
-      clipBias: 0.003,
-      textureWidth: Math.round(window.innerWidth * 0.6),
-      textureHeight: Math.round(window.innerHeight * 0.6),
-      color: 0x2c2a28,
-    })
-    mirror.rotation.x = -Math.PI / 2
-    mirror.position.y = 0.12
-    spinner.add(mirror)
-  } else {
-    const top = new THREE.Mesh(
-      new THREE.CircleGeometry(3.29, 96),
-      new THREE.MeshPhysicalMaterial({ color: 0x0b0a09, roughness: 0.18, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.05 }),
-    )
-    top.rotation.x = -Math.PI / 2
-    top.position.y = 0.12
-    top.receiveShadow = true
-    spinner.add(top)
-  }
+  spinner.add(new THREE.Mesh(mergeGeometries(trim.map((g) => (g.index ? g.toNonIndexed() : g)).map((g) => (g.deleteAttribute('uv'), g))), ringMat))
+  // glossy lacquered top (a real-time mirror here cost a second full render every frame)
+  const top = new THREE.Mesh(
+    new THREE.CircleGeometry(3.29, 96),
+    new THREE.MeshPhysicalMaterial({ color: 0x050404, roughness: 0.14, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 0.55 }),
+  )
+  top.rotation.x = -Math.PI / 2
+  top.position.y = 0.12
+  top.receiveShadow = true
+  spinner.add(top)
+  const blobTex = blobTexture()
 
   /* ---------- cars ---------- */
   const cars = CAR_IDS.map(() => null)
@@ -126,6 +157,25 @@ export function createStage(canvas) {
     c.position.y = 0.12
     c.visible = false
     if (!c.userData.reveal) c.userData.reveal = { value: 1 }
+    c.userData.meshes = []
+    c.traverse((o) => o.isMesh && c.userData.meshes.push(o))
+    // soft contact shadow that grounds the car on every device, even with shadow maps off
+    const len = c.userData.length ?? 4.2
+    const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: 0 })
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(len * 1.15, 2.1), blobMat)
+    blob.rotation.x = -Math.PI / 2
+    blob.position.y = 0.006
+    blob.renderOrder = 1
+    c.add(blob)
+    c.userData.blob = blobMat
+    c.userData.shadowOn = null
+    c.updateMatrixWorld(true)
+    c.traverse((o) => {
+      if (o !== c) {
+        o.matrixAutoUpdate = false
+        o.updateMatrix()
+      }
+    })
     spinner.add(c)
     cars[i] = c
   }
@@ -151,11 +201,31 @@ export function createStage(canvas) {
         mount(i, c)
       }),
     )
-    // compile every program up front so the first reveal doesn't stutter
-    cars.forEach((c) => (c.visible = true))
+    // Warm up behind the loader: compile every shader (incl. shadow variants) and upload every
+    // texture now, so no car causes a hitch the first time it appears mid-scroll.
+    cars.forEach((c) => {
+      c.visible = true
+      c.userData.meshes.forEach((m) => (m.castShadow = true))
+      c.userData.shadowOn = true
+    })
+    spots.forEach((sp) => (sp.intensity = 1))
+    heads.forEach((h) => (h.intensity = 1))
+    attachHeads(cars[0])
     renderer.compile(scene, camera)
-    cars.forEach((c) => (c.visible = false))
+    scene.traverse((o) => {
+      const m = o.material
+      if (!m) return
+      for (const key of ['map', 'emissiveMap', 'roughnessMap', 'metalnessMap', 'normalMap']) if (m[key]) renderer.initTexture(m[key])
+    })
+    renderer.render(scene, camera)
+    cars.forEach((c) => {
+      c.visible = false
+      spinner.remove(c)
+    })
+    spots.forEach((sp) => (sp.intensity = 0))
+    heads.forEach((h) => (h.intensity = 0))
     lastCar = -1
+    headCar = null
   }
 
   /* ---------- lights ---------- */
@@ -167,7 +237,7 @@ export function createStage(canvas) {
 
   const fixtures = [
     { pos: new THREE.Vector3(-5.2, 9.5, 4.2), color: 0xffe2b8, power: 950, shadow: true },
-    { pos: new THREE.Vector3(5.6, 9.5, 3.4), color: 0xfff0d8, power: 700, shadow: !isMobile },
+    { pos: new THREE.Vector3(5.6, 9.5, 3.4), color: 0xfff0d8, power: 700, shadow: false },
     { pos: new THREE.Vector3(0.5, 8, -7.5), color: 0xa9bad6, power: 420, shadow: false, noBeam: true },
   ]
   const fixtureGeo = new THREE.CylinderGeometry(0.28, 0.36, 0.6, 24)
@@ -181,7 +251,7 @@ export function createStage(canvas) {
     s.target = target
     if (f.shadow) {
       s.castShadow = true
-      s.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048)
+      s.shadow.mapSize.set(1024, 1024)
       s.shadow.bias = -0.0004
       s.shadow.normalBias = 0.02
       s.shadow.radius = 5
@@ -216,7 +286,7 @@ export function createStage(canvas) {
   }
 
   // dust motes drifting in the beams
-  const DUST = isMobile ? 220 : 520
+  const DUST = lowPower ? 220 : 480
   const dustPos = new Float32Array(DUST * 3)
   const dustSeed = new Float32Array(DUST)
   for (let i = 0; i < DUST; i++) {
@@ -230,16 +300,11 @@ export function createStage(canvas) {
   }
   const dustGeo = new THREE.BufferGeometry()
   dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3))
-  const dustBase = dustPos.slice()
-  const dustMat = new THREE.PointsMaterial({
-    color: 0xe6cf9f,
-    size: 0.022,
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  })
-  scene.add(new THREE.Points(dustGeo, dustMat))
+  dustGeo.setAttribute('seed', new THREE.BufferAttribute(dustSeed, 1))
+  const dustMat = dustMaterial()
+  const dust = new THREE.Points(dustGeo, dustMat)
+  dust.frustumCulled = false
+  scene.add(dust)
 
   // headlights follow whichever car is active
   const heads = [0, 1].map(() => {
@@ -281,8 +346,9 @@ export function createStage(canvas) {
   }
   let lastCar = -1
   let prevX = new Map()
-  let raf = 0
   let lastT = performance.now()
+  // adaptive resolution: drop render scale when frames run long, restore when there is headroom
+  const perf = { acc: 0, n: 0, calm: 0 }
   let W = 0
   let H = 0
 
@@ -293,6 +359,7 @@ export function createStage(canvas) {
     W = w
     H = h
     renderer.setSize(w, h, false)
+    dustMat.uniforms.uScale.value = (h * dpr) / 2
     camera.aspect = w / h
     camera.fov = w / h < 0.9 ? 40 : 30
     camera.updateProjectionMatrix()
@@ -329,7 +396,11 @@ export function createStage(canvas) {
 
   function showCar(i) {
     if (i === lastCar) return
-    cars.forEach((c, k) => c && (c.visible = k === i))
+    cars.forEach((c, k) => {
+      if (!c) return
+      if (k === i) spinner.add(c)
+      else spinner.remove(c)
+    })
     lastCar = i
     attachHeads(cars[i])
     state.hotspotEls.forEach((el, k) => {
@@ -350,14 +421,41 @@ export function createStage(canvas) {
   const tmpV = new THREE.Vector3()
   const tmpN = new THREE.Vector3()
   const camDir = new THREE.Vector3()
+  const tmpD = new THREE.Vector3()
+
+  function setDpr(v) {
+    dpr = v
+    renderer.setPixelRatio(dpr)
+    renderer.setSize(W, H, false)
+    dustMat.uniforms.uScale.value = (H * dpr) / 2
+  }
+  function adapt(dt) {
+    perf.acc += dt
+    perf.n++
+    if (perf.acc < 1) return
+    const avg = (perf.acc / perf.n) * 1000
+    perf.acc = 0
+    perf.n = 0
+    if (avg > 19 && dpr > minDpr) {
+      setDpr(Math.max(minDpr, dpr - 0.25))
+      perf.calm = 0
+    } else if (avg < 12 && dpr < maxDpr) {
+      if (++perf.calm >= 4) {
+        setDpr(Math.min(maxDpr, dpr + 0.25))
+        perf.calm = 0
+      }
+    } else perf.calm = 0
+  }
+
+  const tgt = { az: 0, h: 0, dist: 0, lookY: 0, sx: 0, sy: 0, lights: 0, head: 0 }
+  const RIG = ['az', 'h', 'dist', 'lookY', 'sx', 'sy', 'head']
 
   function frame(now) {
-    raf = requestAnimationFrame(frame)
     const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000))
     lastT = now
+    if (dt > 0) adapt(dt)
     const k = 1 - Math.exp(-dt * 5)
 
-    let tgt
     let carIndex
     let carX = 0
     let reveal = 1
@@ -366,16 +464,14 @@ export function createStage(canvas) {
     if (state.mode === 'hero') {
       carIndex = 0
       const p = state.heroP
-      tgt = {
-        az: 0.92 - p * 0.5,
-        h: 1.5 + p * 2.6,
-        dist: (portrait() ? fitDist(4.9) : 11.2) + p * 2.5,
-        lookY: 0.85 - p * 0.2,
-        sx: 0,
-        sy: portrait() ? 0.2 : 0.17,
-        lights: introLights(now),
-        head: introHead(now),
-      }
+      tgt.az = 0.92 - p * 0.5
+      tgt.h = 1.5 + p * 2.6
+      tgt.dist = (portrait() ? fitDist(4.9) : 11.2) + p * 2.5
+      tgt.lookY = 0.85 - p * 0.2
+      tgt.sx = 0
+      tgt.sy = portrait() ? 0.2 : 0.17
+      tgt.lights = introLights(now)
+      tgt.head = introHead(now)
       // gentle sway, never turning the unseen rear towards the camera
       angle = cars[0]?.userData.photo
         ? -0.1 + (reduced ? 0 : 0.15 * Math.sin(now * 0.00035)) + p * 0.3 // photo models: stay on the photographed side
@@ -396,16 +492,14 @@ export function createStage(canvas) {
       const sw = Math.sin(clamp01((t - 0.15) / 0.7) * Math.PI)
       const scale = (cars[carIndex]?.userData.length ?? 4.2) / 4.2
       const side = carIndex % 2 === 0 ? 1 : -1
-      tgt = {
-        az: 0.85 + side * 0.06 + sw * 0.18,
-        h: 1.3 + sw * 1.5,
-        dist: portrait() ? fitDist(cars[carIndex]?.userData.length ?? 4.2) * (1 - sw * 0.05) : (10.2 - sw * 0.6) * (0.75 + scale * 0.25),
-        lookY: 0.7,
-        sx: portrait() ? 0 : side * 0.2 * (carIndex === 0 ? smooth(0, 0.12, t) : 1),
-        sy: portrait() ? 0.24 : 0.04,
-        lights: smooth(0.1, 0.22, t) * (last ? 1 : 1 - 0.85 * smooth(0.84, 0.95, t)),
-        head: smooth(0.02, 0.1, t) * (last ? 1 : 1 - smooth(0.95, 1, t)),
-      }
+      tgt.az = 0.85 + side * 0.06 + sw * 0.18
+      tgt.h = 1.3 + sw * 1.5
+      tgt.dist = portrait() ? fitDist(cars[carIndex]?.userData.length ?? 4.2) * (1 - sw * 0.05) : (10.2 - sw * 0.6) * (0.75 + scale * 0.25)
+      tgt.lookY = 0.7
+      tgt.sx = portrait() ? 0 : side * 0.2 * (carIndex === 0 ? smooth(0, 0.12, t) : 1)
+      tgt.sy = portrait() ? 0.24 : 0.04
+      tgt.lights = smooth(0.1, 0.22, t) * (last ? 1 : 1 - 0.85 * smooth(0.84, 0.95, t))
+      tgt.head = smooth(0.02, 0.1, t) * (last ? 1 : 1 - smooth(0.95, 1, t))
       hotspotOn = t > 0.3 && t < 0.8
     }
 
@@ -417,10 +511,15 @@ export function createStage(canvas) {
     const rv = car.userData.reveal
     rv.value = reveal
     car.visible = reveal > 0.001
-    car.traverse((o) => o.isMesh && (o.castShadow = reveal > 0.95))
+    car.userData.blob.opacity = 0.75 * reveal
+    const shadowOn = renderer.shadowMap.enabled && reveal > 0.95
+    if (car.userData.shadowOn !== shadowOn) {
+      car.userData.shadowOn = shadowOn
+      car.userData.meshes.forEach((m) => (m.castShadow = shadowOn))
+    }
     spinner.rotation.y = angle
 
-    for (const key of ['az', 'h', 'dist', 'lookY', 'sx', 'sy', 'head']) state[key] = lerp(state[key], tgt[key], key === 'head' ? 0.35 : k)
+    for (const key of RIG) state[key] = lerp(state[key], tgt[key], key === 'head' ? 0.35 : k)
     state.lights = lerp(state.lights, tgt.lights, 0.3)
 
     // camera
@@ -435,22 +534,13 @@ export function createStage(canvas) {
     hemi.intensity = 0.04 + 0.34 * L
     ringMat.emissiveIntensity = 0.08 + 0.55 * L
     faceMat.color.setScalar(0.1 + 0.9 * L)
-    dustMat.opacity = 0.55 * L
+    dustMat.uniforms.uOpacity.value = 0.55 * L
     const hd = state.head
     heads.forEach((h) => (h.intensity = 55 * hd))
     car.userData.glowMat.opacity = hd
     car.userData.lens.emissiveIntensity = 2.4 * hd
 
-    // dust drift
-    const arr = dustGeo.attributes.position.array
-    const tt = now * 0.0002
-    for (let i = 0; i < DUST; i++) {
-      const s = dustSeed[i]
-      arr[i * 3] = dustBase[i * 3] + Math.sin(tt + s) * 0.25
-      arr[i * 3 + 1] = dustBase[i * 3 + 1] + Math.sin(tt * 0.7 + s * 2) * 0.35
-      arr[i * 3 + 2] = dustBase[i * 3 + 2] + Math.cos(tt * 0.9 + s) * 0.25
-    }
-    dustGeo.attributes.position.needsUpdate = true
+    dustMat.uniforms.uTime.value = now * 0.0002
 
     renderer.render(scene, camera)
 
@@ -464,13 +554,15 @@ export function createStage(canvas) {
         tmpV.set(...h.p)
         car.localToWorld(tmpV)
         tmpN.set(...h.n).normalize().transformDirection(car.matrixWorld)
-        const facing = tmpN.dot(camDir.clone().sub(tmpV).normalize())
+        const facing = tmpN.dot(tmpD.subVectors(camDir, tmpV).normalize())
         tmpV.project(camera)
         const x = (tmpV.x * 0.5 + 0.5) * W
         const y = (-tmpV.y * 0.5 + 0.5) * H
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
-        el.classList.toggle('is-on', hotspotOn && facing > 0.2)
-        el.classList.toggle('flip', x > W - 260)
+        const on = hotspotOn && facing > 0.2
+        const flip = x > W - 260
+        if (el._on !== on) el.classList.toggle('is-on', (el._on = on))
+        if (el._flip !== flip) el.classList.toggle('flip', (el._flip = flip))
       })
     }
   }
@@ -478,7 +570,9 @@ export function createStage(canvas) {
   return {
     load,
     get debug() {
-      return { ...state, hotspotEls: undefined, W, H }
+      let objects = 0
+      scene.traverse(() => objects++)
+      return { ...state, hotspotEls: undefined, W, H, dpr, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, objects }
     },
     setMode(m) {
       if (state.mode === m) return
@@ -502,16 +596,14 @@ export function createStage(canvas) {
       state.active = on
       if (on) {
         lastT = performance.now()
-        raf = requestAnimationFrame(frame)
-      } else cancelAnimationFrame(raf)
+        perf.acc = perf.n = 0
+      }
     },
-    renderOnce() {
-      frame(performance.now())
-      cancelAnimationFrame(raf)
-      if (state.active) raf = requestAnimationFrame(frame)
+    /** Called from the shared GSAP ticker right after Lenis/ScrollTrigger update, so the 3D frame matches the scroll frame. */
+    tick() {
+      if (state.active) frame(performance.now())
     },
     dispose() {
-      cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
       renderer.dispose()
       pmrem.dispose()
