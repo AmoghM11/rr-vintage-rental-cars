@@ -6,7 +6,6 @@ import Lenis from 'lenis'
 import { createStage } from './three/stage.js'
 import Loader from './components/Loader.jsx'
 import Cursor from './components/Cursor.jsx'
-import GlyphWarmup from './components/GlyphWarmup.jsx'
 import Nav from './components/Nav.jsx'
 import Hero from './components/Hero.jsx'
 import Marquee from './components/Marquee.jsx'
@@ -106,7 +105,6 @@ export default function App() {
   return (
     <>
       <canvas ref={canvasRef} className="stage-canvas" aria-hidden="true" />
-      {!entered && <GlyphWarmup />}
       {!entered && <Loader progress={progress} ready={ready} onDone={onEntered} />}
       <Cursor />
       <div className="grain" aria-hidden="true" />
