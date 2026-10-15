@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 import App from './App.jsx'
 import Legal from './components/Legal.jsx'
@@ -11,5 +12,6 @@ createRoot(document.getElementById('root')).render(
       <Route path="/privacy" element={<Legal kind="privacy" />} />
       <Route path="/terms" element={<Legal kind="terms" />} />
     </Routes>
+    <Analytics />
   </BrowserRouter>,
 )
