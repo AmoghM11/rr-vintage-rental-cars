@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Plus, X } from 'lucide-react'
 import { CARS } from '../data.js'
 
 const fmt = (n) => (n >= 1000 ? Math.round(n).toLocaleString('en-US') : String(Math.round(n)))
@@ -26,10 +26,12 @@ function StageLamp({ side }) {
   )
 }
 
-function Panel({ car, i }) {
+function Panel({ car, i, onDetails }) {
   const side = i % 2 === 0 ? 'md:left-[6vw]' : 'md:right-[6vw]'
+  // The four panels are stacked; only their visible buttons may take taps, or the top (hidden) panel
+  // would swallow every tap meant for the car on show.
   return (
-    <article data-panel={i} className={`absolute inset-x-0 bottom-0 px-5 pb-[5.5rem] md:inset-x-auto md:bottom-auto md:top-1/2 md:w-[min(31rem,36vw)] md:-translate-y-1/2 md:px-0 md:pb-0 ${side}`}>
+    <article data-panel={i} className={`pointer-events-none absolute inset-x-0 bottom-0 px-5 pb-[5.5rem] md:inset-x-auto md:bottom-auto md:top-1/2 md:w-[min(31rem,36vw)] md:-translate-y-1/2 md:px-0 md:pb-0 ${side}`}>
       <div className="relative">
         <span data-a className="display pointer-events-none absolute -top-16 right-0 select-none text-[9rem] leading-none text-gold/15 md:-left-6 md:-top-28 md:right-auto md:text-[13rem]">
           {car.num}
@@ -41,13 +43,14 @@ function Panel({ car, i }) {
           {car.make}
         </h3>
         <p data-a className="relative mt-1 font-serif text-2xl italic text-gold-pale md:text-[1.7rem]">{car.model}</p>
-        <p data-a className="relative mt-4 hidden text-[1.02rem] leading-relaxed text-ivory/75 md:block">
+        {/* phones show the opening lines here and the whole story in the details sheet */}
+        <p data-a className="relative mt-3 line-clamp-3 text-[0.98rem] leading-relaxed text-ivory/75 md:mt-4 md:line-clamp-none md:text-[1.02rem]">
           {car.story}
         </p>
-        <dl className="relative mt-5 grid grid-cols-2 gap-x-6 border-t border-gold/30">
+        {/* phones keep one row of specs (none on short screens) so the text clears the turntable */}
+        <dl className="relative mt-4 grid grid-cols-2 gap-x-6 border-t border-gold/30 max-md:[@media(max-height:760px)]:hidden md:mt-5">
           {car.specs.map((s, k) => (
-            // short phone screens keep one row of specs so the text clears the turntable
-            <div key={s.label} data-spec className={`border-b border-gold/20 py-2.5 md:py-3 ${k > 1 ? 'max-md:[@media(max-height:760px)]:hidden' : ''}`}>
+            <div key={s.label} data-spec className={`border-b border-gold/20 py-2.5 md:py-3 ${k > 1 ? 'max-md:hidden' : ''}`}>
               <dt className="text-[0.7rem] uppercase tracking-[0.28em] text-ivory/60 md:text-[0.66rem] md:tracking-[0.32em]">{s.label}</dt>
               <dd className="mt-0.5 text-[1.02rem] font-medium text-ivory md:text-lg">
                 {s.prefix}
@@ -64,17 +67,94 @@ function Panel({ car, i }) {
             </span>
           ))}
         </div>
-        <a data-a href="#book" className="btn-gold relative mt-5 !py-3.5 md:mt-6">
-          Reserve the {car.make} <ArrowRight size={15} />
-        </a>
+        <div data-a className="pointer-events-auto relative mt-5 flex gap-3 md:mt-6">
+          <a href="#book" className="btn-gold !px-5 !py-3.5 max-md:flex-1 max-md:!tracking-[0.2em] md:!px-[1.9rem]">
+            Reserve<span className="max-md:hidden"> the {car.make}</span> <ArrowRight size={15} />
+          </a>
+          <button type="button" onClick={() => onDetails(i)} className="btn-ghost !px-5 !py-3.5 max-md:flex-1 max-md:!tracking-[0.2em] md:hidden">
+            Full details <Plus size={15} />
+          </button>
+        </div>
       </div>
     </article>
+  )
+}
+
+/* Phones: everything the desktop panel shows, in a sheet that slides up over the showroom. */
+function DetailsSheet({ car: c, open, onClose }) {
+  useEffect(() => {
+    if (!open) return
+    const html = document.documentElement
+    const prev = html.style.overflow
+    html.style.overflow = 'hidden'
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => {
+      html.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
+
+  return (
+    <div className={`fixed inset-0 z-[70] md:hidden ${open ? '' : 'pointer-events-none'}`} inert={!open}>
+      <div className={`absolute inset-0 bg-night/70 transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`} onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${c.make} ${c.model}`}
+        data-lenis-prevent
+        className={`absolute inset-x-0 bottom-0 max-h-[88svh] overflow-y-auto overscroll-contain border-t border-gold/40 bg-coal px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6 transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+          open ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="kicker">
+              {c.num} / 04 · {c.era}
+            </p>
+            <h3 className="display mt-3 text-[2.6rem] uppercase leading-[0.95] text-ivory">{c.make}</h3>
+            <p className="mt-1 font-serif text-2xl italic text-gold-pale">{c.model}</p>
+          </div>
+          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center border border-gold-light/40 text-ivory" aria-label="Close details">
+            <X size={20} />
+          </button>
+        </div>
+        <p className="mt-5 text-[1.02rem] leading-relaxed text-ivory/80">{c.story}</p>
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 border-t border-gold/30">
+          {c.specs.map((s) => (
+            <div key={s.label} className="border-b border-gold/20 py-3">
+              <dt className="text-[0.7rem] uppercase tracking-[0.28em] text-ivory/60">{s.label}</dt>
+              <dd className="mt-0.5 text-[1.02rem] font-medium text-ivory">
+                {s.prefix}
+                {s.num != null ? fmt(s.num) : s.text}
+                {s.suffix}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="kicker mt-6 !text-[0.66rem]">Perfect for</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {c.perfect.map((p) => (
+            <span key={p} className="border border-gold/40 px-3 py-1 text-[0.68rem] uppercase tracking-[0.2em] text-gold-pale">
+              {p}
+            </span>
+          ))}
+        </div>
+        <a href="#book" onClick={onClose} className="btn-gold mt-7 w-full !py-3.5">
+          Reserve the {c.make} <ArrowRight size={15} />
+        </a>
+      </div>
+    </div>
   )
 }
 
 export default function Fleet({ stageRef }) {
   const root = useRef(null)
   const pin = useRef(null)
+  // the last car stays in the sheet while it slides away
+  const [sheet, setSheet] = useState({ i: 0, open: false })
+  const openDetails = useCallback((i) => setSheet({ i, open: true }), [])
+  const closeDetails = useCallback(() => setSheet((s) => ({ ...s, open: false })), [])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -191,7 +271,7 @@ export default function Fleet({ stageRef }) {
           </div>
 
           {CARS.map((c, i) => (
-            <Panel key={c.id} car={c} i={i} />
+            <Panel key={c.id} car={c} i={i} onDetails={openDetails} />
           ))}
 
           {/* cinematic subtitle per car */}
@@ -225,6 +305,7 @@ export default function Fleet({ stageRef }) {
           </div>
         </div>
       </div>
+      <DetailsSheet car={CARS[sheet.i]} open={sheet.open} onClose={closeDetails} />
     </section>
   )
 }
