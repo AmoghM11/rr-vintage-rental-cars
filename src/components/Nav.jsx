@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { Menu, X } from 'lucide-react'
 import Logo from './Logo.jsx'
+import { jumpTo } from '../jump.js'
 
 const LEFT = [
   ['The Fleet', '#fleet'],
@@ -12,7 +13,6 @@ const RIGHT = [
   ['Process', '#process'],
   ['Gallery', '#gallery'],
 ]
-const TOUCH = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
 export default function Nav({ lenisRef }) {
   const [scrolled, setScrolled] = useState(false)
@@ -48,16 +48,7 @@ export default function Nav({ lenisRef }) {
   const go = (e, href) => {
     e.preventDefault()
     setOpen(false)
-    requestAnimationFrame(() => {
-      const lenis = lenisRef.current
-      // Home jumps straight to the top instead of gliding back through every section.
-      if (href === '#top') {
-        if (lenis) lenis.scrollTo(0, { immediate: true, force: true })
-        else window.scrollTo(0, 0)
-        return
-      }
-      lenis?.scrollTo(href, { duration: TOUCH ? 1.1 : 1.8, force: true })
-    })
+    requestAnimationFrame(() => jumpTo(lenisRef.current, href))
   }
 
   const link = ([label, href]) => (
