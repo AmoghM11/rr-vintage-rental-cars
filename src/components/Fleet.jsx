@@ -29,7 +29,7 @@ function StageLamp({ side }) {
 function Panel({ car, i }) {
   const side = i % 2 === 0 ? 'md:left-[6vw]' : 'md:right-[6vw]'
   return (
-    <article data-panel={i} className={`absolute inset-x-0 bottom-0 px-5 pb-24 md:inset-x-auto md:bottom-auto md:top-1/2 md:w-[min(31rem,36vw)] md:-translate-y-1/2 md:px-0 md:pb-0 ${side}`}>
+    <article data-panel={i} className={`absolute inset-x-0 bottom-0 px-5 pb-[5.5rem] md:inset-x-auto md:bottom-auto md:top-1/2 md:w-[min(31rem,36vw)] md:-translate-y-1/2 md:px-0 md:pb-0 ${side}`}>
       <div className="relative">
         <span data-a className="display pointer-events-none absolute -top-16 right-0 select-none text-[9rem] leading-none text-gold/15 md:-left-6 md:-top-28 md:right-auto md:text-[13rem]">
           {car.num}
@@ -45,8 +45,9 @@ function Panel({ car, i }) {
           {car.story}
         </p>
         <dl className="relative mt-5 grid grid-cols-2 gap-x-6 border-t border-gold/30">
-          {car.specs.map((s) => (
-            <div key={s.label} data-spec className="border-b border-gold/20 py-2.5 md:py-3">
+          {car.specs.map((s, k) => (
+            // short phone screens keep one row of specs so the text clears the turntable
+            <div key={s.label} data-spec className={`border-b border-gold/20 py-2.5 md:py-3 ${k > 1 ? 'max-md:[@media(max-height:760px)]:hidden' : ''}`}>
               <dt className="text-[0.7rem] uppercase tracking-[0.28em] text-ivory/60 md:text-[0.66rem] md:tracking-[0.32em]">{s.label}</dt>
               <dd className="mt-0.5 text-[1.02rem] font-medium text-ivory md:text-lg">
                 {s.prefix}
@@ -56,14 +57,14 @@ function Panel({ car, i }) {
             </div>
           ))}
         </dl>
-        <div data-a className="relative mt-4 flex flex-wrap gap-2">
+        <div data-a className="relative mt-4 hidden flex-wrap gap-2 md:flex">
           {car.perfect.map((p) => (
             <span key={p} className="border border-gold/40 px-3 py-1 text-[0.68rem] uppercase tracking-[0.2em] text-gold-pale">
               {p}
             </span>
           ))}
         </div>
-        <a data-a href="#book" className="btn-gold relative mt-6 !py-3.5">
+        <a data-a href="#book" className="btn-gold relative mt-5 !py-3.5 md:mt-6">
           Reserve the {car.make} <ArrowRight size={15} />
         </a>
       </div>
@@ -174,49 +175,53 @@ export default function Fleet({ stageRef }) {
       </div>
 
       {/* pinned showroom */}
-      <div ref={pin} className="relative h-[100svh] overflow-hidden">
+      {/* The pin covers the large viewport (mobile toolbars collapsed) so no bare strip shows at the
+          bottom; the content inside is laid out on the small viewport so it is never under a toolbar. */}
+      <div ref={pin} className="relative h-[100lvh] overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-night/80 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-night via-night/85 to-transparent md:hidden" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-night via-night/90 to-transparent md:hidden" />
         <div data-scrim="left" className="pointer-events-none absolute inset-y-0 left-0 hidden w-[55vw] bg-gradient-to-r from-night via-night/70 to-transparent opacity-0 md:block" />
         <div data-scrim="right" className="pointer-events-none absolute inset-y-0 right-0 hidden w-[55vw] bg-gradient-to-l from-night via-night/70 to-transparent opacity-0 md:block" />
-        <div className="absolute left-1/2 top-24 hidden -translate-x-1/2 text-center md:block">
-          <p className="kicker !text-[0.66rem]">Spotlight on wheels</p>
-          <p className="display mt-1 text-2xl text-ivory/80">
-            <span data-counter>01</span> <span className="text-ivory/30">/ 04</span>
-          </p>
-        </div>
-
-        {CARS.map((c, i) => (
-          <Panel key={c.id} car={c} i={i} />
-        ))}
-
-        {/* cinematic subtitle per car */}
-        <div className="fleet-sub pointer-events-none absolute inset-x-0 bottom-28 hidden text-center md:block">
-          {CARS.map((c, i) => (
-            <p
-              key={c.id}
-              data-sub
-              className={`absolute inset-x-0 mx-auto max-w-xl font-serif text-xl italic text-ivory/70 ${i % 2 === 0 ? 'md:translate-x-[12vw]' : 'md:-translate-x-[12vw]'}`}
-            >
-              {c.quote}
+        <div className="absolute inset-x-0 top-0 h-[100svh]">
+          <div className="absolute left-1/2 top-24 hidden -translate-x-1/2 text-center md:block">
+            <p className="kicker !text-[0.66rem]">Spotlight on wheels</p>
+            <p className="display mt-1 text-2xl text-ivory/80">
+              <span data-counter>01</span> <span className="text-ivory/30">/ 04</span>
             </p>
-          ))}
-        </div>
-
-        {/* year timeline, Payana style */}
-        <div className="absolute inset-x-5 bottom-8 mx-auto max-w-3xl md:inset-x-10">
-          <div className="relative h-px bg-ivory/15">
-            <div data-progress className="absolute inset-0 origin-left bg-gold-light" />
           </div>
-          <div className="mt-[-6px] grid grid-cols-4">
-            {CARS.map((c) => (
-              <div key={c.id} data-node className="group flex flex-col items-center">
-                <span className="h-3 w-3 rounded-full border border-gold-light bg-night transition-all duration-500 group-data-[on]:scale-125 group-data-[on]:bg-gold-light" />
-                <span className="mt-2 text-[0.66rem] uppercase tracking-[0.3em] text-ivory/60 transition-colors group-data-[on]:text-gold-pale">
-                  {c.node}
-                </span>
-              </div>
+
+          {CARS.map((c, i) => (
+            <Panel key={c.id} car={c} i={i} />
+          ))}
+
+          {/* cinematic subtitle per car */}
+          <div className="fleet-sub pointer-events-none absolute inset-x-0 bottom-28 hidden text-center md:block">
+            {CARS.map((c, i) => (
+              <p
+                key={c.id}
+                data-sub
+                className={`absolute inset-x-0 mx-auto max-w-xl font-serif text-xl italic text-ivory/70 ${i % 2 === 0 ? 'md:translate-x-[12vw]' : 'md:-translate-x-[12vw]'}`}
+              >
+                {c.quote}
+              </p>
             ))}
+          </div>
+
+          {/* year timeline, Payana style */}
+          <div className="absolute inset-x-5 bottom-8 mx-auto max-w-3xl md:inset-x-10">
+            <div className="relative h-px bg-ivory/15">
+              <div data-progress className="absolute inset-0 origin-left bg-gold-light" />
+            </div>
+            <div className="mt-[-6px] grid grid-cols-4">
+              {CARS.map((c) => (
+                <div key={c.id} data-node className="group flex flex-col items-center">
+                  <span className="h-3 w-3 rounded-full border border-gold-light bg-night transition-all duration-500 group-data-[on]:scale-125 group-data-[on]:bg-gold-light" />
+                  <span className="mt-2 text-[0.66rem] uppercase tracking-[0.3em] text-ivory/60 transition-colors group-data-[on]:text-gold-pale">
+                    {c.node}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

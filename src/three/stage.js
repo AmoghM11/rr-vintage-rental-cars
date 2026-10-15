@@ -80,11 +80,12 @@ export function createStage(canvas) {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const lowPower = isMobile || isTouch
 
-  // High-density screens are already sharp, so skip MSAA there and render below native resolution.
+  // Desktop HiDPI screens skip MSAA and render below native resolution. Phones keep MSAA (cheap on
+  // tile-based mobile GPUs) and render at 2x, because a small screen held close shows every jagged edge.
   const deviceDpr = window.devicePixelRatio || 1
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: deviceDpr < 2, powerPreference: 'high-performance', stencil: false })
-  const maxDpr = Math.min(deviceDpr, 1.5)
-  const minDpr = lowPower ? 0.75 : 1
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: deviceDpr < 2 || isTouch, powerPreference: 'high-performance', stencil: false })
+  const maxDpr = Math.min(deviceDpr, isTouch ? 2 : 1.5)
+  const minDpr = Math.min(deviceDpr, lowPower ? 1.25 : 1)
   let dpr = maxDpr
   renderer.setPixelRatio(dpr)
   renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -348,7 +349,7 @@ export function createStage(canvas) {
   let prevX = new Map()
   let lastT = performance.now()
   // adaptive resolution: drop render scale when frames run long, restore when there is headroom
-  const perf = { acc: 0, n: 0, calm: 0 }
+  const perf = { acc: 0, n: 0, calm: 0, base: Infinity, ceil: maxDpr, skip: 2 }
   let W = 0
   let H = 0
 
@@ -436,12 +437,24 @@ export function createStage(canvas) {
     const avg = (perf.acc / perf.n) * 1000
     perf.acc = 0
     perf.n = 0
-    if (avg > 19 && dpr > minDpr) {
+    // the first seconds include shader compiles and texture uploads; judge the steady state only
+    if (perf.skip > 0) return void perf.skip--
+    // The fastest second seen approximates the display's frame cap. iOS Low Power Mode and some
+    // Android battery savers pin rAF to 30fps; that is not the GPU struggling, so it must not cost
+    // resolution. Only frames well beyond the cap count as slow. Real caps sit at 60 or 30fps, so a
+    // device whose best is slower than ~28fps is simply slow and is judged against 60fps.
+    perf.base = Math.min(perf.base, avg)
+    const cap = perf.base <= 36 ? perf.base : 1000 / 60
+    const slow = Math.max(19, cap * 1.35)
+    const fast = Math.max(12, cap * 1.12)
+    if (avg > slow && dpr > minDpr) {
       setDpr(Math.max(minDpr, dpr - 0.25))
+      // a level that proved too slow is not retried, so resolution never see-saws
+      perf.ceil = dpr
       perf.calm = 0
-    } else if (avg < 12 && dpr < maxDpr) {
+    } else if (avg < fast && dpr < perf.ceil) {
       if (++perf.calm >= 4) {
-        setDpr(Math.min(maxDpr, dpr + 0.25))
+        setDpr(Math.min(perf.ceil, dpr + 0.25))
         perf.calm = 0
       }
     } else perf.calm = 0
