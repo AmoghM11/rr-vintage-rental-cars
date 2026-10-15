@@ -1,37 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 import { ArrowRight } from 'lucide-react'
-
-function Petals() {
-  const petals = useMemo(() => {
-    const n = typeof window !== 'undefined' && window.innerWidth < 768 ? 8 : 16
-    return Array.from({ length: n }, (_, i) => ({
-      left: Math.random() * 100,
-      size: 10 + Math.random() * 14,
-      fall: 11 + Math.random() * 10,
-      delay: -Math.random() * 20,
-      sway: 2.5 + Math.random() * 3,
-      spin: 4 + Math.random() * 6,
-      hue: i % 3,
-    }))
-  }, [])
-  const colours = ['#8f1d2c', '#b8475a', '#e7c9a0']
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {petals.map((p, i) => (
-        <div key={i} className="petal" style={{ left: `${p.left}%`, animationDuration: `${p.fall}s`, animationDelay: `${p.delay}s` }}>
-          <span style={{ animationDuration: `${p.sway}s` }}>
-            <svg width={p.size} height={p.size * 1.2} viewBox="0 0 20 24" style={{ animationDuration: `${p.spin}s` }}>
-              <path d="M10 1C15 6 19 11 17 17c-1.6 4.6-12.4 4.6-14 0C1 11 5 6 10 1z" fill={colours[p.hue]} opacity="0.85" />
-              <path d="M10 3c0 6-1 12-1 18" stroke="rgba(0,0,0,.18)" strokeWidth=".6" fill="none" />
-            </svg>
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export default function Hero({ entered }) {
   const root = useRef(null)
@@ -64,7 +34,6 @@ export default function Hero({ entered }) {
       {/* vignette so copy reads over the 3D stage */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,transparent_30%,rgba(7,6,5,.75)_80%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-night via-night/75 to-transparent" />
-      <Petals />
 
       {/* museum-plaque frame lines */}
       <div className="pointer-events-none absolute inset-x-5 top-24 md:inset-x-10">

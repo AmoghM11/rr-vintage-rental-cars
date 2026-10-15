@@ -38,6 +38,7 @@ export default function App() {
     Promise.all([stage.load((p) => alive && setProgress(p)), document.fonts.ready]).then(() => alive && setReady(true))
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const touch = window.matchMedia('(pointer: coarse)').matches
     // Wheel/trackpad gets eased smoothing; touch keeps the device's native momentum (syncTouch off),
     // which is what feels best on iPhone and Android.
     const lenis = new Lenis({ lerp: reduced ? 1 : 0.1, wheelMultiplier: 0.9, syncTouch: false })
@@ -57,7 +58,9 @@ export default function App() {
       const link = e.target.closest?.('a[href^="#"]')
       if (!link || e.defaultPrevented) return
       e.preventDefault()
-      lenis.scrollTo(link.getAttribute('href'), { duration: 1.8 })
+      const href = link.getAttribute('href')
+      if (href === '#top') lenis.scrollTo(0, { immediate: true, force: true })
+      else lenis.scrollTo(href, { duration: touch ? 1.1 : 1.8 })
     }
     document.addEventListener('click', onClick)
     return () => {

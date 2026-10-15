@@ -12,6 +12,7 @@ const RIGHT = [
   ['Process', '#process'],
   ['Gallery', '#gallery'],
 ]
+const TOUCH = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
 export default function Nav({ lenisRef }) {
   const [scrolled, setScrolled] = useState(false)
@@ -47,7 +48,16 @@ export default function Nav({ lenisRef }) {
   const go = (e, href) => {
     e.preventDefault()
     setOpen(false)
-    requestAnimationFrame(() => lenisRef.current?.scrollTo(href, { duration: 1.8 }))
+    requestAnimationFrame(() => {
+      const lenis = lenisRef.current
+      // Home jumps straight to the top instead of gliding back through every section.
+      if (href === '#top') {
+        if (lenis) lenis.scrollTo(0, { immediate: true, force: true })
+        else window.scrollTo(0, 0)
+        return
+      }
+      lenis?.scrollTo(href, { duration: TOUCH ? 1.1 : 1.8, force: true })
+    })
   }
 
   const link = ([label, href]) => (
@@ -102,9 +112,9 @@ export default function Nav({ lenisRef }) {
             style={{ background: 'radial-gradient(circle at 70% 20%, rgba(142,107,54,.5), transparent 60%)' }}
           />
           <nav className="relative flex flex-col gap-4" aria-label="Mobile">
-            {[...LEFT, ...RIGHT, ['Book a date', '#book']].map(([label, href], i) => (
+            {[['Home', '#top'], ...LEFT, ...RIGHT, ['Book a date', '#book']].map(([label, href], i) => (
               <div key={href} className="overflow-hidden">
-                <a data-m href={href} onClick={(e) => go(e, href)} className="display flex items-baseline gap-5 text-[2.6rem] text-ivory">
+                <a data-m href={href} onClick={(e) => go(e, href)} className="display flex items-baseline gap-5 text-[clamp(2rem,9vw,2.6rem)] text-ivory">
                   <span className="font-sans text-xs tracking-[0.3em] text-gold-light">0{i + 1}</span>
                   {label}
                 </a>

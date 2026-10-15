@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // touch screens keep hover styles stuck after a tap; only apply them where hover exists
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {

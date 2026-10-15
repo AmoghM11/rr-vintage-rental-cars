@@ -18,6 +18,10 @@
     color: var(--ivory);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    /* clip, not hidden: stops sideways wobble on phones without creating a scroll container */
+    overflow-x: clip;
   }
   html.lenis,
   html.lenis body {
@@ -34,7 +38,7 @@
     background: var(--night);
     font-size: 17px;
     line-height: 1.6;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   ::selection {
     background: var(--gold-light);
@@ -66,6 +70,11 @@
     font-size: 0.78rem;
     letter-spacing: 0.42em;
     color: var(--gold-light);
+  }
+  @media (max-width: 640px) {
+    .kicker {
+      letter-spacing: 0.28em;
+    }
   }
   .display {
     font-family: 'Italiana', serif;
@@ -106,8 +115,10 @@
   .btn-gold::before {
     background: var(--ivory);
   }
-  .btn-gold:hover {
-    color: var(--night);
+  @media (hover: hover) {
+    .btn-gold:hover {
+      color: var(--night);
+    }
   }
   .btn-ghost {
     border: 1px solid rgba(201, 165, 107, 0.55);
@@ -116,9 +127,15 @@
   .btn-ghost::before {
     background: var(--gold);
   }
-  .btn-gold:hover::before,
-  .btn-ghost:hover::before {
-    transform: translateY(0);
+  @media (hover: hover) {
+    .btn-gold:hover::before,
+    .btn-ghost:hover::before {
+      transform: translateY(0);
+    }
+  }
+  .btn-gold:active,
+  .btn-ghost:active {
+    opacity: 0.85;
   }
   .rule {
     height: 1px;
@@ -162,6 +179,13 @@
   100% { transform: translate(0, 0); }
 }
 
+/* Full-screen noise is a costly layer to composite on phones, and invisible at that size anyway. */
+@media (hover: none), (pointer: coarse), (max-width: 820px) {
+  .grain {
+    display: none;
+  }
+}
+
 /* ---------- custom cursor ---------- */
 .cursor-dot,
 .cursor-ring {
@@ -203,45 +227,6 @@
 @keyframes scrollcue {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(200%); }
-}
-
-/* ---------- hero petals ---------- */
-.petal {
-  position: absolute;
-  top: -8vh;
-  pointer-events: none;
-  animation: petal-fall linear infinite;
-  will-change: transform;
-}
-.petal > span {
-  display: block;
-  animation: petal-sway ease-in-out infinite alternate;
-  will-change: transform;
-}
-.petal svg {
-  display: block;
-  animation: petal-spin linear infinite;
-}
-@keyframes petal-fall {
-  to {
-    transform: translate3d(0, 118vh, 0);
-  }
-}
-@keyframes petal-sway {
-  from {
-    transform: translateX(-28px);
-  }
-  to {
-    transform: translateX(28px);
-  }
-}
-@keyframes petal-spin {
-  from {
-    transform: rotate3d(1, 0.6, 0.2, 0deg);
-  }
-  to {
-    transform: rotate3d(1, 0.6, 0.2, 360deg);
-  }
 }
 
 /* ---------- hotspots over the 3D car ---------- */
@@ -324,6 +309,13 @@
 .hotspot.flip .hotspot-label {
   left: auto;
   right: 52px;
+}
+
+/* On phones the floating labels crowd the car and the panel text below it. */
+@media (max-width: 767px) {
+  .hotspot {
+    display: none !important;
+  }
 }
 
 /* ---------- parchment ---------- */
@@ -457,8 +449,5 @@ input[type='date']::-webkit-calendar-picker-indicator {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-  .petal {
-    display: none;
   }
 }

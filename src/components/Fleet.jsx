@@ -47,7 +47,7 @@ function Panel({ car, i }) {
         <dl className="relative mt-5 grid grid-cols-2 gap-x-6 border-t border-gold/30">
           {car.specs.map((s) => (
             <div key={s.label} data-spec className="border-b border-gold/20 py-2.5 md:py-3">
-              <dt className="text-[0.66rem] uppercase tracking-[0.32em] text-ivory/50">{s.label}</dt>
+              <dt className="text-[0.7rem] uppercase tracking-[0.28em] text-ivory/60 md:text-[0.66rem] md:tracking-[0.32em]">{s.label}</dt>
               <dd className="mt-0.5 text-[1.02rem] font-medium text-ivory md:text-lg">
                 {s.prefix}
                 {s.num != null ? <span data-count={s.num}>0</span> : s.text}
@@ -212,7 +212,7 @@ export default function Fleet({ stageRef }) {
             {CARS.map((c) => (
               <div key={c.id} data-node className="group flex flex-col items-center">
                 <span className="h-3 w-3 rounded-full border border-gold-light bg-night transition-all duration-500 group-data-[on]:scale-125 group-data-[on]:bg-gold-light" />
-                <span className="mt-2 text-[0.66rem] uppercase tracking-[0.3em] text-ivory/45 transition-colors group-data-[on]:text-gold-pale">
+                <span className="mt-2 text-[0.66rem] uppercase tracking-[0.3em] text-ivory/60 transition-colors group-data-[on]:text-gold-pale">
                   {c.node}
                 </span>
               </div>
